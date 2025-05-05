@@ -26,7 +26,13 @@ ui <- page_fluid(
     navset_tab(
       nav_panel("Search",
                 textInput("search_query", "Search OneMine", placeholder = "Enter search terms..."),
-                actionButton("search_btn", "Search", class = "btn-primary")
+                actionButton("search_btn", "Search", class = "btn-primary"),
+                card(
+                  title = "Search Results",
+                  #verbatimTextOutput("search_results")
+                  uiOutput("search_results"),
+                  uiOutput("scraped_results")
+                )
       ),
       nav_panel("Results")
     )
