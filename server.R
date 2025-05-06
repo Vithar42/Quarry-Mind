@@ -12,6 +12,7 @@ library(shinyalert)
 library(ellmer)
 library(tidyverse)
 library(jsonlite)
+library(rvest)
 
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
@@ -154,7 +155,7 @@ server <- function(input, output, session) {
     
     if (TRUE){
       #vals$scraped_links <- "https://www.onemine.org/documents/open-pit-mine-dewatering-knob-lake"
-      load("myname5.RData")
+      load("scrappeddata.RData")
       vals$scraped_links <- results
       return()
     }
