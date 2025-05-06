@@ -20,7 +20,12 @@ An app to search and summarize abstracts and recomended sources from the OneMine
 - Scraping the abstract data from the website.
   - some (maybe all) abstract pages have a CSV and RIS file.  Checking a dozen or so of them, the CSV is the citation information and the RIS contains the abstract.  So actual scraping might not bee strictly needed if we can get the search result urls in a good list format, as the CSV and RIS have a consistent link format.
 - Develop good prompts for the multiple LLM uses.  Collect a users LLM API key information so keys are not in the code.
-  
+
+### Current App Flow
+
+- Search for something mining related, and get a list of suggested search URLS.  They can be clicked on to see search results.
+- The user is presented with a button to scrape the search results.  When clicked the user is taken to the Scraped tab, and shown the articles pulled from the scraping of search links.  After reviewing the user can click a "Summarize Search Results" button.
+- The Summarize button will bring the user to the results page.  Which gives a summary and final selection of the most useful articles from the search results for the users original search.  It also lists the articles, and includes links directly to them.
   
 ## Deliverables
 
@@ -28,12 +33,12 @@ An app to search and summarize abstracts and recomended sources from the OneMine
 **End date: 2025-05-22**
 
 - Day 1 and 2:
-  - [ ] Initial wireframing. You may use AI tools such as
+  - [X] Initial wireframing. You may use AI tools such as
     [tldraw](https://www.tldraw.com/), [shiny
     assistant](https://gallery.shinyapps.io/assistant/#) or [ploomber AI
     editor](https://editor.ploomber.io/)
   - Framework to use:
-    - [ ] shiny only
+    - [X] shiny only
     - [ ] [golem](https://github.com/ThinkR-open/golem)
     - [ ] [rhino](https://github.com/Appsilon/rhino)
     - [ ] shiny + [ambiorix](https://ambiorix.dev/)
