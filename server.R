@@ -152,9 +152,9 @@ server <- function(input, output, session) {
     
     test_url <- vals$urls
     
-    
+    ## Change to FALSE when determiend its ok to scrape search results ----
+    ## TODO
     if (TRUE){
-      #vals$scraped_links <- "https://www.onemine.org/documents/open-pit-mine-dewatering-knob-lake"
       load("scrappeddata.RData")
       vals$scraped_links <- results
       return()
