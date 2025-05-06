@@ -18,12 +18,13 @@ ui <- page_fluid(
                  actionButton("set_api",
                               "Set an openAI API key")
                  ), 
-    open = TRUE),
+    open = FALSE),
   
   # Main card container
   card(
     # Navigation tabs
     navset_tab(
+      id = "mytabs",
       nav_panel("Search",
                 textInput("search_query", "Search OneMine", placeholder = "Enter search terms..."),
                 actionButton("search_btn", "Search", class = "btn-primary"),
@@ -31,10 +32,14 @@ ui <- page_fluid(
                   title = "Search Results",
                   #verbatimTextOutput("search_results")
                   uiOutput("search_results"),
-                  uiOutput("scraped_results")
                 )
       ),
-      nav_panel("Results")
+      nav_panel("Scrape",
+                uiOutput("scraped_results")
+      ),
+      nav_panel("Results",
+                uiOutput("abs_results")
+                )
     )
   )
 )
