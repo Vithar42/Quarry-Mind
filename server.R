@@ -16,6 +16,9 @@ library(rvest)
 
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
+  
+  httr::set_config(httr::config(timeout = 120))
+  
   # Reactive Values ----
   # Declare the reactive value early
   api_key <- reactiveVal(NULL)
@@ -24,8 +27,15 @@ server <- function(input, output, session) {
                          urls =  NULL,
                          scraped_links = NULL,
                          abs_data = tibble(),
-                         json= NULL)
+                         json= NULL,
+                         ua_list = NULL)
 
+  
+  # 1) Hide tabs until their UI is rendered
+  nav_hide("mytabs", "Scrape")
+  nav_hide("mytabs", "Results")
+  nav_hide("mytabs", "Analysis")
+  
   # Set API id needed Values ----
   # React to Check_api button click
   observeEvent(input$check_api, {
@@ -86,12 +96,16 @@ server <- function(input, output, session) {
   observeEvent(input$search_btn, {
     query <- input$search_query
     
+    print("--------------------")
+    print("Running prompts for the search")
+    
     # Construct the prompt for Ellmer
     prompt <- paste0("Search OneMine for: ", query)
     
     chat_Search <- chat_openai(
-      model = "gpt-4o-mini",
-      system_prompt = "You are a specilized search term generator for the OneMine.org database.  The user will give you a description of a problem.  Determine the best way to search OneMine.org's database to find journal articles that will help the user.  If there is a single search term that will work return it, if it would be best to do multiple searches then make a set of serch terms.  Format as jason, with the first tag being 'Thoughts' where you explain the resoning behind the suggested search terms.  The next tag is 'SearchTerms' where you put the search terms.  Make sure to use the correct format for JSON, and make sure to escape any double quotes.  Do not include any other text."
+      model = "gpt-4.1-mini",
+      system_prompt = paste0("You are a specilized search term generator for the OneMine.org database.  The user will give you a description of a problem.  Determine the best way to search OneMine.org's database to find journal articles that will help the user.  If there is a single search term that will work return it, if it would be best to do multiple searches then make a set of serch terms.  Format as jason, with the first tag being 'Thoughts' where you explain the resoning behind the suggested search terms.  The next tag is 'SearchTerms' where you put the search terms.  Make sure to use the correct format for JSON, and make sure to escape any double quotes.  Do not include any other text.\n\n",
+      "Do **not** wrap your output in markdown or backticks, and do not emit any extra keys ")
     )
     
     # Call your function to handle the search (replace with actual call to Ellmer)
@@ -111,6 +125,10 @@ server <- function(input, output, session) {
   })
   
   observeEvent(vals$searchterms, {
+    
+    print("--------------------")
+    print("Updating UI with completed Search")
+    
     output$search_results <- renderUI({
       # If no terms, show a placeholder
       if (is.null(vals$searchterms) || nrow(vals$searchterms) == 0) {
@@ -154,7 +172,7 @@ server <- function(input, output, session) {
     
     ## Change to FALSE when determiend its ok to scrape search results ----
     ## TODO
-    if (TRUE){
+    if (FALSE){
       load("scrappeddata.RData")
       vals$scraped_links <- results
       return()
@@ -190,7 +208,11 @@ server <- function(input, output, session) {
   # Items for the Scrape Tab ----
   observeEvent(vals$scraped_links, {
     
+    nav_show("mytabs", "Scrape")
     updateTabsetPanel(session, "mytabs", selected = "Scrape")
+    
+    print("--------------------")
+    print("Producing the content for the Scrape Tab")
     
     output$scraped_results <- renderUI({
       # placeholder if no results yet
@@ -253,6 +275,9 @@ server <- function(input, output, session) {
                  citation = character(),
                  url = character())
     
+    print("--------------------")
+    print("Looping through urls to produce a usable datafrom of abstracts")
+    
     for (i in 1:length(urls)){
       results <- urls[[i]]$results
       print(names(urls)[i])
@@ -260,10 +285,28 @@ server <- function(input, output, session) {
         
         url_ris <- paste0(k, "/citation/ris")
         searchname <- names(urls)[i]
-        temp <- extract_ris_mla(url_ris, searchname, k)
+        #temp <- extract_ris_mla(url_ris, searchname, k)
+        
+        temp <- tryCatch(
+          extract_ris_mla(url_ris, searchname, k),
+          error = function(e) {
+            warning("Failed on ", url_ris, ": ", e$message)
+            # return a “blank” row so df stays rectangular
+            tibble(
+              search   = searchname,
+              title    = NA_character_,
+              abstract = NA_character_,
+              citation = NA_character_,
+              url      = k
+            )
+          }
+        )
+        
+        #df <- df %>%
+        #  add_row(temp)
         
         df <- df %>%
-          add_row(temp)
+          bind_rows(temp)
         
       }
     }
@@ -279,6 +322,8 @@ server <- function(input, output, session) {
     query <- input$search_query
     abs_data <- vals$abs_data %>% select(-search)
     
+    print("--------------------")
+    print("Running prompts for the Results Tab")
     # 1) A stricter system prompt
     new_system_prompt <- paste0(
       "You are an expert researcher in Mining and Civil Engineering. You specialize in ",
@@ -312,17 +357,20 @@ server <- function(input, output, session) {
     
   # 3) Fire the chat
   chat_summary <- chat_openai(
-    model = "gpt-4o-mini",
+    model = "gpt-4.1-mini",
     system_prompt = new_system_prompt
     )
   
     # Call your function to handle the search (replace with actual call to Ellmer)
     result <- chat_summary$chat(prompt_summary)  
-    
+
     vals$json <- fromJSON(result)
     
+    nav_show("mytabs", "Results")
     updateTabsetPanel(session, "mytabs", selected = "Results")
     
+    print("--------------------")
+    print("Generating Output for the Results Tab")
     output$abs_results <- renderUI({
       # make sure we actually have the parsed JSON
       req(vals$json)  
@@ -349,6 +397,8 @@ server <- function(input, output, session) {
         # `drop = TRUE` makes it a named vector, then as.list()
         as.list(ua[i, , drop = TRUE])
       })
+      
+      vars$ua_list <- ua_list
       
       #browser()
       
@@ -377,10 +427,42 @@ server <- function(input, output, session) {
           card_header("Useful Articles"),
           card_body(tagList(articles_ui)),
           class = "mb-3"
+        ),
+        card(
+          card_header("Analyis Results"),
+          card_body(actionButton("scrape_results", "Analyis Results"))
         )
       )
     })
     
 
   })
+  
+  # Tiems for the Analysis Tab ----
+  observeEvent({vals$abs_data
+                input$scrape_results}, {
+      
+      browser()
+      df <- vals$json
+      print("--------------------")
+      print("Running prompts for the Analysis Tab")
+      
+      
+      
+      nav_show("mytabs", "Analysis")
+      updateTabsetPanel(session, "mytabs", selected = "Analysis")
+      
+      browser()
+      
+      df_pdf <- tibble()
+      
+      for (i in df$url){
+        print(i)
+        browser()
+        df_pdf <- df_pdf %>%
+          rbind(extract_pdf(i))
+        }
+      
+    })
+  
 }

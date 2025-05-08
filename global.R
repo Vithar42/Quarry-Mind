@@ -109,3 +109,64 @@ extract_ris_mla <- function(ris_url, searchname, article_url) {
     url = article_url,
   )
 }
+
+extract_pdf <- function(page_url) {
+  # 0. Install / load dependencies
+  needed <- c("httr","rvest","xml2","pdftools","tibble")
+  for (pkg in needed) {
+    if (!requireNamespace(pkg, quietly = TRUE)) install.packages(pkg)
+    library(pkg, character.only = TRUE)
+  }
+  
+  
+  # assume you’ve exported Firefox cookies for the target domain to cookies.txt
+  cookie_file <- "firefox-cookies.txt"
+  
+  # 1) POST your credentials to the login form
+  login <- httr::POST(
+    "https://login.personifygo.com/prodsmemi/Account/Login",
+    body = list(username = "*******", password = "********"),
+    encode = "form",
+    httr::config(cookiejar = cookie_file)   # capture the resulting session cookie
+  )
+
+  # 1. Fetch the HTML page
+  res <- httr::GET(page_url,
+                   httr::config(cookiefile = cookie_file, cookiejar = cookie_file))
+  if (httr::status_code(res) != 200) {
+    stop("Failed to retrieve page (HTTP ", httr::status_code(res), ").")
+  }
+  html_txt <- httr::content(res, "text", encoding = "UTF-8")
+  doc      <- xml2::read_html(html_txt)
+  
+  # 2. Find all <a rel="noopener" href="*.pdf">
+  anchors  <- rvest::html_nodes(doc, "a[rel='noopener']")
+  hrefs    <- rvest::html_attr(anchors, "href")
+  pdf_refs <- hrefs[grepl("\\.pdf$", hrefs, ignore.case = TRUE)]
+  if (length(pdf_refs) == 0) {
+    stop("No PDF links found on the page.")
+  }
+  
+  # 3. Turn them into absolute URLs
+  pdf_urls <- xml2::url_absolute(pdf_refs, base = page_url)
+  
+  # 4. Download each PDF & extract text
+  texts <- vapply(pdf_urls, function(pdf_url) {
+    tmp <- tempfile(fileext = ".pdf")
+    r2  <- httr::GET(pdf_url,
+                     httr::config(cookiefile = cookie_file, cookiejar = cookie_file),
+                     httr::write_disk(tmp, overwrite = TRUE))
+    if (httr::status_code(r2) != 200) {
+      stop("Failed to download PDF: ", pdf_url)
+    }
+    pages <- pdftools::pdf_text(tmp)
+    unlink(tmp)
+    paste(pages, collapse = "\n\n")
+  }, FUN.VALUE = character(1))
+  
+  # 5. Return as a tibble
+  tibble::tibble(
+    pdf_url = pdf_urls,
+    text    = texts
+  )
+}

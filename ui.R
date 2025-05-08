@@ -26,7 +26,12 @@ ui <- page_fluid(
     navset_tab(
       id = "mytabs",
       nav_panel("Search",
-                textInput("search_query", "Search OneMine", placeholder = "Enter search terms..."),
+                #textInput("search_query", "Search OneMine", placeholder = "Enter search terms..."),
+                textAreaInput("search_query", 
+                              "Search OneMine", 
+                              placeholder = "Enter search terms...",
+                              width = "100%",
+                              height = "200px"),
                 actionButton("search_btn", "Search", class = "btn-primary"),
                 card(
                   title = "Search Results",
@@ -38,8 +43,11 @@ ui <- page_fluid(
                 uiOutput("scraped_results")
       ),
       nav_panel("Results",
-                uiOutput("abs_results")
-                )
+               uiOutput("abs_results")
+               ),
+      nav_panel("Analysis",
+                uiOutput("analysis_results")
+      )
     )
   )
 )
