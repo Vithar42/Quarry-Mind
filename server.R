@@ -103,7 +103,7 @@ server <- function(input, output, session) {
     prompt <- paste0("Search OneMine for: ", query)
     
     chat_Search <- chat_openai(
-      model = "gpt-4.1-mini",
+      model = "gpt-4o-mini",
       system_prompt = paste0("You are a specilized search term generator for the OneMine.org database.  The user will give you a description of a problem.  Determine the best way to search OneMine.org's database to find journal articles that will help the user.  If there is a single search term that will work return it, if it would be best to do multiple searches then make a set of serch terms.  Format as jason, with the first tag being 'Thoughts' where you explain the resoning behind the suggested search terms.  The next tag is 'SearchTerms' where you put the search terms.  Make sure to use the correct format for JSON, and make sure to escape any double quotes.  Do not include any other text.\n\n",
       "Do **not** wrap your output in markdown or backticks, and do not emit any extra keys ")
     )
@@ -334,7 +334,7 @@ server <- function(input, output, session) {
       "- \"summary\": a detailed, multi-paragraph overview (at least 150 words) that ",
       "answers the original query, explains how each chosen article contributes to that ",
       "answer, and justifies their selection.\n",
-      "- \"useful_articles\": an **array of 4–6 objects**. Each object **must** have exactly ",
+      "- \"useful_articles\": an **array of 5–10 objects**. Each object **must** have exactly ",
       "four keys:\n",
       "    • \"title\" (string)\n",
       "    • \"author\" (string; empty string if unknown)\n",
@@ -357,7 +357,7 @@ server <- function(input, output, session) {
     
   # 3) Fire the chat
   chat_summary <- chat_openai(
-    model = "gpt-4.1-mini",
+    model = "gpt-4o-mini",
     system_prompt = new_system_prompt
     )
   
@@ -398,9 +398,12 @@ server <- function(input, output, session) {
         as.list(ua[i, , drop = TRUE])
       })
       
-      vars$ua_list <- ua_list
+      print(class(vals$json))
+      print(str(vals$json, max.level = 1))
       
       #browser()
+      vals$ua_list <- ua_list
+      
       
       articles_ui <- lapply(ua_list, function(cite) {
         div(class = "mb-3",

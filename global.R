@@ -110,7 +110,7 @@ extract_ris_mla <- function(ris_url, searchname, article_url) {
   )
 }
 
-extract_pdf <- function(page_url) {
+extract_pdf <- function(page_url, username, password) {
   # 0. Install / load dependencies
   needed <- c("httr","rvest","xml2","pdftools","tibble")
   for (pkg in needed) {
@@ -125,7 +125,7 @@ extract_pdf <- function(page_url) {
   # 1) POST your credentials to the login form
   login <- httr::POST(
     "https://login.personifygo.com/prodsmemi/Account/Login",
-    body = list(username = "*******", password = "********"),
+    body = list(username = username, password = password),
     encode = "form",
     httr::config(cookiejar = cookie_file)   # capture the resulting session cookie
   )
